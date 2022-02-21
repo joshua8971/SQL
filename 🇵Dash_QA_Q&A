@@ -1,0 +1,51 @@
+// Created by ksangin@, if you have any inquiries about Query, Feel free to contact me via Chats, Emails //
+select 
+case_id,
+CAST(case_start_day as DATE) as start_day,
+CAST(case_start_week as DATE) as start_week,
+CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST(case_start_day AS DATE), MONTH)) as DATE) as start_month,
+case_start_quarter as start_quarter,
+CASE WHEN locale ='ko' THEN 'Korean'
+WHEN locale = 'ja' THEN 'Japanese' ELSE NULL END as lang,
+opening_channel as Channel,
+task_owner as ldap,
+quality_reviewer,
+grade,
+question,
+CASE 
+  WHEN question = "business: correctly categorized the case" THEN "B1.Neo Taxonomy"
+  WHEN question = "business: followed correct case workflows" THEN "B2.Workflow"
+  WHEN question = "business: filed comprehensive consults through correct escalations paths" THEN "B3.Consults"
+  WHEN question = "business: left comprehensive notes (incl. channel id criteria)" THEN "B4.Comprehension Note"
+  WHEN question = "policy: complied with policy rules, didn't disclose sensitive information that could put youtube at legal risk" THEN "B5.Policy"
+  WHEN question = "love: listened actively, demonstrated attention to the partner / googler and sent customized communication (l)" THEN "L1.Listen Actively"
+  WHEN question = "love: took full ownership and explained the issue, addressed explicit & implicit questions, provided educational information & workarounds (o)" THEN "L2.Ownership"
+  WHEN question = "love: exemplified friendly youtube voice, adjusted tone & pace to partner (v)" THEN "L3.Voice of YT"
+  WHEN question = "love: delivered flawless professional communication (language, thoughts organization, presentation etc.)" THEN "L4.Communication"
+  WHEN question = "love: figured out the core issue and provided accurate solution (e)" THEN "L5.Issue resolution"
+  ELSE NULL END as question_short,
+selected_option,
+question_comment,
+question_obtained_score,
+question_max_score,
+category,
+neo_feature,
+neo_component,
+neo_component_detail,
+neo_request,
+wave
+
+from (
+    SELECT *,
+    NULL as is_aligned_v2
+    FROM youtube_creator_support_dremel.qplus
+    WHERE review_type = 'QA Review'
+    AND queue_site='SEO'
+    AND stage in ('QA (TVC review)')
+    AND queue in ('[SEO] QA Core (new)'))
+left join google.POS_agentlist
+on task_owner=ldap
+  
+  
+GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22
+Order by 2,1
