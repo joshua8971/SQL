@@ -1,0 +1,175 @@
+#
+# Source dashboard: https://dashboards.corp.google.com/_59d41127_1923_441c_9e0d_8dd07b3afd32
+# Changing this script will not affect the SQL data source of the Plx Dashboard.
+#
+-- New Case Level Data
+SELECT
+A.*,
+CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST(B.closed_date AS DATE), DAY)) AS DATE) AS closed_day,
+CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST(B.closed_date AS DATE), WEEK)) AS DATE) AS closed_week,
+CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST(B.closed_date AS DATE), MONTH)) AS DATE) AS closed_month,
+CASE 
+WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(B.closed_date AS DATE), QUARTER))='2022-01-01' THEN '2022-Q1'
+WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(B.closed_date AS DATE), QUARTER))='2022-04-01' THEN '2022-Q2'
+WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(B.closed_date AS DATE), QUARTER))='2022-07-01' THEN '2022-Q3'
+WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(B.closed_date AS DATE), QUARTER))='2022-10-01' THEN '2022-Q4' 
+WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(B.closed_date AS DATE), QUARTER))='2021-01-01' THEN '2021-Q1'
+WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(B.closed_date AS DATE), QUARTER))='2021-04-01' THEN '2021-Q2'
+WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(B.closed_date AS DATE), QUARTER))='2021-07-01' THEN '2021-Q3'
+WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(B.closed_date AS DATE), QUARTER))='2021-10-01' THEN '2021-Q4'
+WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(B.closed_date AS DATE), QUARTER))='2020-01-01' THEN '2020-Q1'
+WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(B.closed_date AS DATE), QUARTER))='2020-04-01' THEN '2020-Q2'
+WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(B.closed_date AS DATE), QUARTER))='2020-07-01' THEN '2020-Q3'
+WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(B.closed_date AS DATE), QUARTER))='2020-10-01' THEN '2020-Q4'
+ELSE NULL END as closed_quarter, 
+B.channel as channel
+
+
+FROM
+(SELECT
+	* 
+FROM
+(SELECT
+  src.workflow AS workflow,
+  src.stage    AS stage,
+  src.queue,
+  src.quality_reviewer,
+  src.appeal_reviewer,
+  src.agent,
+  case_id,
+  src.sampled_entity_id,
+  src.review_date,
+  src.review_week,
+  src.review_month,
+  src.review_quarter,
+  src.case_start_day,
+  src.case_start_week,
+  src.case_start_month,
+  src.case_start_quarter,
+  src.case_start_year,
+  src.appeal_status,
+  src.appeal_status_2,
+  src.category,
+  src.evaluation_score,
+  business_score,
+  customer_score,
+  issue_category,
+  youtube_product,
+  vendor,
+  vendor_city,
+  --CASE WHEN vendor_city = 'KUL' THEN 'KL' ELSE vendor_city END AS vendor_city,
+    CASE
+  	WHEN lower(locale)  LIKE "%spanish%" Then "Spanish" 
+	WHEN lower(locale)  LIKE "%portuguese%" Then "Portuguese"
+	ElSE locale
+  END AS locale,
+  opening_channel,
+  handling_channel,
+  TRT, 
+  satisfiedcustomer10, 
+  satisfiedcustomer10_include,
+  chat_satisfiedcustomer10,
+  chat_dissatisfiedcustomer10,
+  chat_satisfiedcustomer10_include,
+  phone_satisfiedcustomer10,
+  phone_dissatisfiedcustomer10,
+  phone_satisfiedcustomer10_include,
+  email_satisfiedcustomer10,
+  email_dissatisfiedcustomer10,
+  email_satisfiedcustomer10_include,
+  DENSE_RANK() OVER (PARTITION BY case_id ORDER BY src.review_date DESC) AS score_rank,
+  type,
+  src.grade,
+  e.chat_casecount,
+  e.phone_casecount,
+  e.email_casecount,
+  e.agent_tenure_bucket,
+  chat_casecount_handling_ch,
+  phone_casecount_handling_ch,
+  email_casecount_handling_ch,
+  phone_csat_score,
+  chat_csat_score,
+  email_csat_score, 
+  phone_score, 
+  chat_score,  
+  email_score,
+  survey_amount1,
+  grade_fail,
+  src.level,
+    CASE 
+    WHEN (src.level = 2 AND src.appeal_status = 'APPEAL_IN_FAVOUR') OR (src.level IN (3, 4) AND src.appeal_status_2 = 'APPEAL_IN_FAVOUR') THEN 'APPEAL_UPHELD'
+    WHEN (src.level = 2 AND src.appeal_status = 'APPEAL_NOT_IN_FAVOUR') OR (src.level IN (3, 4) AND src.appeal_status_2 = 'APPEAL_NOT_IN_FAVOUR') THEN 'APPEAL_OVERTURNED'
+    ELSE NULL
+  END AS updated_appeal_status
+FROM yt_iit_analyst.qplus_ytmp_interim_table -- youtube_commerce_support_dremel.qplus_ytmp_interim_table
+WHERE lower(src.stage) NOT LIKE "%iqa%" --and case_id IN ('0-3349000026327', '0-9073000026556', '1-0449000026328', '1-0694000026351','3-4469000026295','5-4426000026329','7-1323000026383')
+GROUP BY 
+  src.workflow,
+  src.stage,
+  src.queue,
+  src.quality_reviewer,
+  src.appeal_reviewer,
+  src.agent,
+  case_id,
+  src.sampled_entity_id,
+  src.review_date,
+  src.review_week,
+  src.review_month,
+  src.review_quarter,
+  case_start_day,
+  case_start_week,
+  case_start_month,
+  case_start_quarter,
+  case_start_year,
+  appeal_status,
+  appeal_status_2,
+  category,
+  evaluation_score,
+  business_score,
+  customer_score,
+  issue_category,
+  youtube_product,
+  vendor,
+  vendor_city,
+  locale,
+  opening_channel,
+  handling_channel,
+  TRT, 
+  satisfiedcustomer10, 
+  satisfiedcustomer10_include,
+  chat_satisfiedcustomer10,
+  chat_dissatisfiedcustomer10,
+  chat_satisfiedcustomer10_include,
+  phone_satisfiedcustomer10,
+  phone_dissatisfiedcustomer10,
+  phone_satisfiedcustomer10_include,
+  email_satisfiedcustomer10,
+  email_dissatisfiedcustomer10,
+  email_satisfiedcustomer10_include,
+  type,
+  grade,
+  chat_casecount,
+  phone_casecount,
+  email_casecount,
+  agent_tenure_bucket,
+  chat_casecount_handling_ch,
+  phone_casecount_handling_ch,
+  email_casecount_handling_ch,
+  phone_csat_score,
+  chat_csat_score,
+  email_csat_score, 
+  phone_score, 
+  chat_score,  
+  email_score,
+  survey_amount1,
+  grade_fail,
+  level,
+  updated_appeal_status)
+  WHERE score_rank = 1 ) A
+  
+left join drexlerjohn.YTKRDATA2 B 
+on A.case_id = B.case_id
+
+WHERE A.vendor='Concentrix'  
+and A.locale in ('Korean','Japanese')
+and A.stage in ('Weekly Cases - JA (SEO)','Weekly Cases - KO (SEO)')
