@@ -1,0 +1,103 @@
+SELECT
+CAST(A.start_day as Date) as start_day,
+CAST(A.start_week as Date) as start_week,
+Cast(A.start_month as Date) as start_month,
+A.start_quarter,
+A.start_year,
+A.assignee_site,
+A.is_internal_consult,
+A.in_support_corpus,
+A.assignee_employee_type,
+A.is_new_deal,
+A.pgm_topic,
+A.case_id,
+A.closed,
+A.regretted_contact,
+A.total_seconds_to_resolution,
+A.satisfaction,
+A.dsat_driver,
+A.opening_channel,
+A.closing_channel,
+A.outgoing_emails_total,
+A.best_co_name,
+A.emails_responded_in_sla_excluding_pst_weekends,
+A.chat_Responded_in_SLA,
+A.marked_oos,
+A.total_number_of_interactions,
+A.neo_feature,
+A.neo_component,
+A.neo_request,
+A.neo_resolution,
+A.neo_component_detail,
+A.neo_policy,
+A.neo_policy_type,
+A.neo_policy_enforcement,
+A.youtube_resolution_time,
+A.qa_vendor_score,
+A.bug_id,
+CAST(A.satisfactionscore_1through7 as int64) as satisfactionscore_1through7,
+CASE WHEN CAST(A.satisfactionscore_1through7 as int64) >=6 THEN 1 ELSE NULL END as csat, 
+CASE WHEN CAST(A.satisfactionscore_1through7 as int64) <=5 THEN 1 ELSE NULL END as dsat,
+A.lang,
+A.survey_response_received,
+A.in_swat,
+A.in_m10n,
+A.neo_feature_remapped,
+A.neo_component_remapped,
+A.neo_component_detail_remapped,
+A.form_id,
+A.entry_point,
+A.rate_your_agreement,
+A.rate_your_agreement_on_policies,
+A.was_issue_resolved,
+A.how_did_you_feel_about_your_most_recent_experience_with_our_support_team,
+A.partner_comments,
+A.interaction_type,
+A.has_state_in_consult,
+A.count_for_turn_around,
+A.assignee_ldap as ldap,
+A.channel_tier,
+A.partner_tier,
+A.reopened,
+A.survey_sent,
+A.neo_program,
+A.is_cms_enabled_partner,
+A.Ytdp_satisfied, 
+A.ytdp_issue_resolved,
+A.YTdp_dissatisfied,
+A.ytdp_dissatisfied_else,
+A.ytdp_neither,
+A.duplicate_source_count,
+A.start_timestamp,
+FORMAT_TIMESTAMP('%c',TIMESTAMP_MILLIS(CAST(A.start_timestamp as INT64)),'Asia/Seoul') as kst_timestamp,
+FORMAT_TIMESTAMP('%R',TIMESTAMP_MILLIS(CAST(A.start_timestamp as INT64)),'Asia/Seoul') as kst_HH_MM,
+FORMAT_TIMESTAMP('%A',TIMESTAMP_MILLIS(CAST(A.start_timestamp as INT64)),'Asia/Seoul') as kst_dayofweek,
+CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST (TIMESTAMP_MILLIS(CAST(A.start_timestamp as INT64)) as DATE), Day)) as DATE) as kst_day,
+CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST (TIMESTAMP_MILLIS(CAST(A.start_timestamp as INT64)) as DATE), WEEK)) as DATE) as kst_week,
+CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST (TIMESTAMP_MILLIS(CAST(A.start_timestamp as INT64)) as DATE), MONTH)) as DATE) as kst_month,
+B.last_known_state as last_known_state,
+C.wave,
+D.lv1_driver,
+  CASE WHEN CAST(A.youtube_resolution_time AS INT64) / 3600.0 <= 24.0
+      AND (A.closed = CAST(1 AS INT32)) 
+      AND (NOT ((A.interaction_type) IN ("Abandoned Chat", "Unconnected Chat")))
+      THEN 1 ELSE 0 END AS YTR_24h_cal,
+  CASE WHEN CAST(A.youtube_resolution_time AS INT64) / 3600.0 <= 120.0
+      AND (A.closed = CAST(1 AS INT32)) 
+      AND (NOT ((A.interaction_type) IN ("Abandoned Chat", "Unconnected Chat")))
+      THEN 1 ELSE 0 END AS YTR_5d_cal,
+
+
+FROM chrisswan.pgm_objectives_data A
+LEFT JOIN drexlerjohn.YTKRDATA2 B
+on A.case_id=B.case_id
+LEFT JOIN google.POS_agentlist C
+on A.assignee_ldap = C.ldap
+LEFT JOIN google.pos_rca_internal D 
+on A.case_id=D.case_id
+
+WHERE A.assignee_site = "CNX Seoul"
+and A.assignee_employee_type = "TVC"
+and A.in_support_corpus='Y'
+and A.neo_request not in ('[Practice Training Case]')
+and A.lang in ('Korean', 'Japanese')
