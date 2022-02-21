@@ -1,0 +1,39 @@
+select 
+  A.case_id,
+  CAST(A.start_day as DATE) as start_day,
+  CAST(A.start_week as DATE) as start_week,
+  CAST(A.start_month as DATE) as start_month,
+  A.start_quarter,
+  A.lang,
+  A.opening_channel,
+  A.task_owner_manual as ldap,
+  A.wave,
+  A.partner_tier,
+  A.satisfactionscore_1through7,
+  A.neo_feature,
+  A.neo_component,
+  A.neo_component_detail,
+  A.neo_request,
+  A.lv1_driver,
+  A.l2_driver,
+  A.l3_driver,
+  A.dsat_comment,
+  A.rca,
+  A.what_can_we_do_better,
+  A.ytdp_issue_resolved,
+  A.ytdp_neither,
+  A.partner_comments,
+  A.dsat_other_comments,
+  A.ytdp_dissatisfied,
+  A.timestamp,
+  A.updated_week,
+  A.issue_resolved,
+  A.if_the_agent_met_all_expectations_would_it_still_be_a_dsat,
+  A.if_answer_is_yes_select_the_category_for_the_sdd,
+  B.bug_id
+from google.pos_rca_internal A
+left join (select 
+           case_id,
+           bug_id
+           from chrisswan.pgm_objectives_data) B
+on A.case_id = B.case_id
