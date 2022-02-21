@@ -1,0 +1,25 @@
+select 
+A.*,
+FORMAT_DATE('%F',DATE_TRUNC(CAST(A.date AS DATE), Year)) as Year,
+B.wave,
+C.bug_id as bug_id,
+C.duplicate_binary as duplicate_binary,
+C.survey_submit_date,
+C.survey_footer_sent,
+C.survey_channel,
+D.main_driver, 
+D.category_or_skill,
+D.sub_parameters
+  
+FROM drexlerjohn.YTKRDATA2 A
+Left join google.pps_agentlist B
+on A.ldap = B.ldap 
+
+Left join youtube_commerce_support_dremel.YTC_MasterDataSet20140721_Concentrix C
+on A.case_id=C.case_id
+
+Left join google.pps_rca_internal D
+on A.case_id=D.case_id
+
+
+WHERE A.lob='PPS'
