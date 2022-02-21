@@ -1,0 +1,16 @@
+select 
+  
+  A.*,
+  B.Year,
+  C.wave
+
+from google.pps_rca_internal A
+left join (select 
+case_id,
+FORMAT_DATE('%F',DATE_TRUNC(CAST(date AS DATE), Year)) as Year
+FROM drexlerjohn.YTKRDATA2
+WHERE lob='PPS'
+) B
+on A.case_id=B.case_id
+left join google.pps_agentlist C 
+on A.ldap = C.ldap
