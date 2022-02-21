@@ -1,0 +1,16 @@
+select 
+week_timestamp,
+date_timestamp,
+timestamp,
+SPLIT(ldap,'@')[SAFE_OFFSET(0)] as ldap,
+case_id,
+channel,
+product,
+user_inquiry,
+casenote_phone,
+tl,
+case_status,
+reason_of_need_info_need_info,
+Note
+
+from google.pps_agent_survey
