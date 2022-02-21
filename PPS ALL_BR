@@ -1,0 +1,73 @@
+select 
+  A.case_id as case_id,
+  A.date as date,
+  A.week as week,  
+  A.month as month,  
+  CASE 
+  WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(A.date AS DATE), QUARTER))='2022-10-01' THEN '2022-Q4'  
+  WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(A.date AS DATE), QUARTER))='2022-07-01' THEN '2022-Q3'
+  WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(A.date AS DATE), QUARTER))='2022-04-01' THEN '2022-Q2'
+  WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(A.date AS DATE), QUARTER))='2022-01-01' THEN '2022-Q1'
+  WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(A.date AS DATE), QUARTER))='2020-10-01' THEN '2020-Q4'  
+  WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(A.date AS DATE), QUARTER))='2020-07-01' THEN '2020-Q3'
+  WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(A.date AS DATE), QUARTER))='2020-04-01' THEN '2020-Q2'
+  WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(A.date AS DATE), QUARTER))='2020-01-01' THEN '2020-Q1'
+  WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(A.date AS DATE), QUARTER))='2021-10-01' THEN '2021-Q4'  
+  WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(A.date AS DATE), QUARTER))='2021-07-01' THEN '2021-Q3'
+  WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(A.date AS DATE), QUARTER))='2021-04-01' THEN '2021-Q2'
+  WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(A.date AS DATE), QUARTER))='2021-01-01' THEN '2021-Q1'
+  WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(A.date AS DATE), QUARTER))='2020-10-01' THEN '2020-Q4'  
+  WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(A.date AS DATE), QUARTER))='2020-07-01' THEN '2020-Q3'
+  WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(A.date AS DATE), QUARTER))='2020-04-01' THEN '2020-Q2'
+  WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(A.date AS DATE), QUARTER))='2020-01-01' THEN '2020-Q1'
+  ELSE NULL END as quarter,     
+  A.ldap as ldap,
+  A.language as language,
+  A.channel as channel,
+  A.satisfactionscore_1through7 as satisfactionscore_1through7,
+  A.product as product,
+  A.neo_component as neo_component,
+  A.neo_request as neo_request,
+  A.how_can_we_do_better as how_can_we_do_better,
+  A.yt_products_and_services as yt_products_and_services,
+  A.SLA_met_phone as SLA_met_phone,
+  A.inbound as inbound,
+  A.disconnected as disconnected,        
+  A.shortcalls as shortcalls,        
+  A.case_ct as case_ct,        
+  A.count_for_turn_around as count_for_turn_around,
+  A.SLA_met as SLA_met,
+  A.closed_date as closed_date,
+  B.source as source,
+  B.device_type as device_type,
+  B.chat_type as chat_type,
+  B.consult10 as consult10,
+  B.closing_channel as closing_channel,
+  B.premium_member_status as premium_member_status,
+  B.last_known_state_id as last_known_state_id,
+  B.total_seconds_to_resolution as total_seconds_to_resolution,
+  B.form_id as form_id,
+  B.play_case_routing as play_case_routing,
+  B.bug_id as bug_id,
+  SUM(CASE WHEN A.SLA_met IS NULL THEN 0 ELSE A.SLA_met END + CASE WHEN A.SLA_met_phone IS NULL THEN 0 ELSE A.SLA_met_phone END) AS sla_met,
+  SUM(CASE
+  WHEN A.channel = 'EMAIL' AND A.count_for_turn_around > 0 THEN A.count_for_turn_around
+  WHEN A.channel = 'CHAT' AND A.case_ct > 0 THEN case_ct
+  WHEN A.channel = 'PHONE' AND (A.inbound - A.disconnected - A.shortcalls) <> 0 THEN (A.inbound - A.disconnected - A.shortcalls)
+  ELSE NULL END) AS processed_volume,
+  SUM(CASE WHEN A.channel = 'PHONE' THEN (CASE WHEN A.abandonment IS NULL THEN 0 ELSE A.abandonment END + CASE WHEN A.abandonment_phone IS NULL THEN 0 ELSE A.abandonment_phone END) - A.shortcalls 
+  ELSE (CASE WHEN A.abandonment IS NULL THEN 0 ELSE A.abandonment END + CASE WHEN A.abandonment_phone IS NULL THEN 0 ELSE A.abandonment_phone END) END) AS abandonment,
+  SUM(CASE WHEN A.channel = 'PHONE' THEN A.inbound - A.disconnected - A.shortcalls ELSE A.case_ct END) AS actual_count, 
+  SUM(CASE WHEN A.dsat_count IS NULL THEN 0 ELSE A.dsat_count END) AS dsat_count,
+  SUM(CASE WHEN A.survey_count IS NULL THEN 0 ELSE A.survey_count END) as survey,
+  SUM(CASE WHEN A.survey_count IS NULL THEN 0 ELSE A.survey_count END)-SUM(CASE WHEN A.dsat_count IS NULL THEN 0 ELSE A.dsat_count END) AS csat_count
+  
+FROM drexlerjohn.YTKRDATA2 A
+left 
+join youtube_commerce_support_dremel.YTC_MasterDataSet20140721_Concentrix B
+on A.case_id = B.case_id
+
+WHERE A.lob='PPS'
+And A.week>='2021-12-26'
+GROUP by 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33
+ORDER BY a.date desc
