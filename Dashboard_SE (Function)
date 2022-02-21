@@ -1,0 +1,10 @@
+ Aux93 : SUM(CASE WHEN agents_states.unavailable_reason = 'Aux 93 - Scheduled Lunch' THEN duration END)/ 60
+ se_lob :
+  CASE 
+    WHEN agents_states.username IN ("youngwonk","kunhoe","manchanl","seongyeongp","shuyoung","jaewons","kimhyejin","heejungy","jumim","yunheek","hayee","jongminc") THEN "PSE_KR"
+    WHEN agents_states.username IN ("wmiki","tomokoo","hatakeyamam","koshimo","yfuruya","fujitah") THEN "PSE_JP"
+    WHEN agents_states.username IN ("darong","shinw","shonj","nminyoung","jooy","jihyunyang","ljiyeon","songyipark","doheeh","dongwool","heejinjoo","Yongjunk","yoonheekang",
+"munhee","soonyi","eunjuj","riok","yangjung","saeroms","yikhee","jinwons","juwonm","huiyoungk","choijieun","minjungjang","jeeeunc","minjikkim","taeyounglee","yubincho",
+"kimsuj","hyejinn","jeeyoungl","songmee") THEN "PPS_KR"
+    WHEN agents_states.username IN ("kyurie","sekizawa","naganuma","hikarin","aikow","naokosato","murakamiy","aharuka","kunimoto","tazoe","kubom","yumikokim","hitomit") THEN "PPS_JP"
+END
