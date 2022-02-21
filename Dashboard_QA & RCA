@@ -1,0 +1,112 @@
+select 
+case_id,
+CAST(case_start_day as DATE) as start_day,
+CAST(case_start_week as DATE) as start_week,
+CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST(case_start_day AS DATE), MONTH)) AS DATE) AS start_month,
+case_start_quarter as start_quarter,
+CASE WHEN locale ='ko' THEN 'Korean'
+WHEN locale = 'ja' THEN 'Japanese' ELSE NULL END as lang,
+opening_channel as Channel,
+task_owner as ldap,
+quality_reviewer,
+grade,
+stage,
+evaluation_score,
+final_alignment_score,
+is_aligned,
+is_calib_stage,
+category, 
+SUM(CASE WHEN category = 'love' 
+    THEN question_obtained_score
+    ELSE Null END) as love_score,
+SUM(CASE WHEN category = 'business critical' THEN question_obtained_score
+    ELSE Null END) as business_score,  
+CASE WHEN category='primary dsat category' THEN NULL 
+WHEN evaluation_score>=90 THEN 1 ELSE 0 END as Pass,
+CAST(case_closed_week as DATE) as case_closed_week,
+CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST(case_closed_day AS DATE), MONTH)) AS DATE) AS case_closed_month,
+CAST(qplus_review_week as DATE) as qplus_review_week,
+CAST(qplus_review_month as DATE) as qplus_review_month,
+CAST(survey_response_day as DATE) as survey_response_day,
+queue,
+neo_feature,
+neo_component,
+neo_component_detail,
+neo_request,
+wave,
+COUNT(DISTINCT case_id) as case_ct
+
+
+
+from (
+    SELECT *,
+    NULL as is_aligned_v2
+    FROM youtube_creator_support_dremel.qplus
+    left join google.POS_agentlist
+    on task_owner=ldap
+        
+    WHERE review_type = 'QA Review'
+    AND queue_site='SEO'
+    AND stage in ('QA (TVC review)', 'QA (TVC IQA Review)')
+    AND queue in ('[SEO] QA Core (new)')
+    
+    
+    )
+
+GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,19,20,21,22,23,24,25,26,27,28,29,30
+
+UNION ALL
+
+select 
+case_id,
+CAST(case_start_day as DATE) as start_day,
+CAST(case_start_week as DATE) as start_week,
+CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST(case_start_day AS DATE), MONTH)) AS DATE) AS start_month,
+case_start_quarter as start_quarter,
+CASE WHEN locale ='ko' THEN 'Korean'
+WHEN locale = 'ja' THEN 'Japanese' ELSE NULL END as lang,
+opening_channel,
+task_owner as ldap,
+quality_reviewer,
+grade,
+stage,
+evaluation_score,
+final_alignment_score,
+is_aligned,
+is_calib_stage,
+category, 
+SUM(CASE WHEN category = 'love' 
+    THEN question_obtained_score
+    ELSE Null END) as love_score,
+SUM(CASE WHEN category = 'business critical' THEN question_obtained_score
+    ELSE Null END) as business_score,  
+CASE WHEN category='primary dsatQ category' THEN NULL 
+WHEN evaluation_score>=90 THEN 1 ELSE 0 END as Pass,
+CAST(case_closed_week as DATE) as case_closed_week,
+CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST(case_closed_day AS DATE), MONTH)) AS DATE) AS case_closed_month,
+CAST(qplus_review_week as DATE) as qplus_review_week,
+CAST(qplus_review_month as DATE) as qplus_review_month,
+CAST(survey_response_day as DATE) as survey_response_day,
+queue,
+neo_feature,
+neo_component,
+neo_component_detail,
+neo_request,
+wave,
+COUNT(DISTINCT case_id) as case_ct
+
+From (
+    SELECT *,
+    is_aligned as is_aligned_v2
+    FROM youtube_creator_support_dremel.qplus
+    left join google.POS_agentlist
+    on task_owner=ldap
+    
+    WHERE review_type ='RCA Review'
+    AND category = 'primary dsat category'
+    AND queue_site='SEO'
+    AND stage in ('RCA (TVC review)','RCA (TVC IQA Review)')
+    AND queue in ('[SEO] RCA Core (new)'))
+
+GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,19,20,21,22,23,24,25,26,27,28,29,30
+Order by 1
