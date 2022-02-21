@@ -1,0 +1,28 @@
+SELECT 
+A.* ,
+CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST(B.closed_date AS DATE), DAY)) AS DATE) AS closed_day,
+CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST(B.closed_date AS DATE), WEEK)) AS DATE) AS closed_week,
+CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST(B.closed_date AS DATE), MONTH)) AS DATE) AS closed_month,
+B.channel as channel
+
+FROM 
+(select 
+src.*,
+e.*,
+*, 
+   CASE
+  	WHEN (src.level = 2 AND src.appeal_status = 'APPEAL_IN_FAVOUR') OR (src.level IN (3, 4) AND src.appeal_status_2 = 'APPEAL_IN_FAVOUR') THEN 'APPEAL_UPHELD' 
+    WHEN (src.level = 2 AND src.appeal_status = 'APPEAL_NOT_IN_FAVOUR') OR (src.level IN (3, 4) AND src.appeal_status_2 = 'APPEAL_NOT_IN_FAVOUR') THEN 'APPEAL_OVERTURNED'
+    ELSE NULL
+  END AS appeal_status_updated,
+  DENSE_RANK() OVER (PARTITION BY case_id ORDER BY src.review_date DESC) AS score_rank
+from yt_iit_analyst.qplus_ytmp_interim_table -- youtube_user_support_dremel.qplus_ytmp_interim_table
+where lower(src.stage) NOT LIKE "%iqa%") A
+
+
+left join drexlerjohn.YTKRDATA2 B 
+on A.case_id = B.case_id
+
+WHERE score_rank = 1 
+and vendor='Concentrix'  
+and language in ('Korean','Japanese')
