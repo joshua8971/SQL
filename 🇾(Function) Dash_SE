@@ -1,3 +1,4 @@
+ Aux 8 - SUM(CASE WHEN agents_states.unavailable_reason = 'Aux 8 - Scheduled Break/Bio' THEN duration END)/ 60
  Aux93 : SUM(CASE WHEN agents_states.unavailable_reason = 'Aux 93 - Scheduled Lunch' THEN duration END)/ 60
  se_lob :
   CASE 
