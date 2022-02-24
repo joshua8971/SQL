@@ -1,0 +1,35 @@
+Select
+case_id,
+CAST(case_start_day as DATE) as case_start_day,
+CAST(case_start_week as DATE) as case_start_week,
+CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST(case_start_day AS DATE), MONTH)) as DATE) as case_start_month,
+case_start_quarter,
+survey_response_day
+locale,
+opening_channel,
+task_owner,
+quality_reviewer,
+CASE 
+  WHEN grade='support / love driven' THEN 'support' 
+  WHEN grade='product / policy driven' THEN 'product' 
+  ELSE NULL END as Main_Driver,
+category,
+question,
+selected_option,
+question_comment,
+
+
+From (
+    SELECT *,
+    is_aligned as is_aligned_v2
+    FROM youtube_creator_support_dremel.qplus
+    WHERE review_type ='RCA Review'
+    AND queue_site='SEO'
+    AND stage in ('RCA (TVC review)')
+    AND queue in ('[SEO] RCA Core (new)'))
+
+
+WHERE case_start_quarter in ('2021-Q1','2021-Q2','2021-Q3','2021-Q4','2022-Q1','2022-Q2','2022-Q3','2022-Q4')
+Order by 2 desc, 1 desc, 11 asc
+
+
