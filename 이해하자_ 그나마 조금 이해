@@ -1,0 +1,192 @@
+# kurikiy
+# Created: August 2018
+# Last Modified: August 2018
+# Dashboard: https://dashboards.corp.google.com/edit/google::_a10c5fb3_0515_4997_8d6a_5518d685bb81
+
+##################################################
+////////////////////
+/////Raw data///////
+////////////////////
+select 
+case_id,
+case_start_day,
+case_start_week,
+case_start_month,
+case_start_quarter,
+opening_channel,
+closing_channel
+locale,
+review_type,
+rca_primary_driver,
+rca_primary_driver_selected_option,
+rca_primary_driver_question_comments,
+rca_secondary_driver_category,
+rca_secondary_driver_selected_option,
+rca_secondary_driver_question_comments,
+dsat_reason,
+dsat_other_reason,
+ytdp_additional_feedback,
+satisfaction,
+satisfactionscore_1through7,
+survey_response_day,
+neo_component,
+neo_component_detail,
+neo_feature,
+neo_request,
+neo_resolution,
+neo_workdriver,
+opening_channel
+
+
+
+from 
+#PART 2: pulls RCA reviewed cases
+(select
+
+a.appeal_reviewer as appeal_reviewer,
+a.appeal_status as appeal_status,
+a.case_id as case_id,
+a.is_calib_stage as is_calib_stage,
+a.final_alignment_score as final_alignment_score,
+a.is_aligned as is_aligned,
+a.grade as grade,
+a.quality_reviewer as quality_reviewer,
+a.queue as queue,
+a.sampled_entity_id as sampled_entity_id,
+a.stage as stage,
+a.task_owner as task_owner,
+a.task_owner_msp as task_owner_msp,
+a.workflow as workflow,
+//a.city as city,
+a.evaluation_score as evaluation_score,
+a.qplus_review_date as qplus_review_date, 
+a.qplus_review_week as qplus_review_week,
+a.qplus_review_month as qplus_review_month,
+a.qplus_review_quarter as qplus_review_quarter,
+a.case_closed_day as case_closed_day,
+a.case_closed_week as case_closed_week,
+a.case_closed_month as case_closed_month,
+a.case_closed_quarter as case_closed_quarter,
+a.case_start_day as case_start_day,
+a.case_start_week as case_start_week,
+a.case_start_month as case_start_month,
+a.case_start_quarter as case_start_quarter,
+a.locale as locale,
+a.review_type as review_type,
+a.assignee_employee_type as assignee_employee_type,
+a.qa_atlas_segment_business as qa_atlas_segment_business,
+a.partner_tier as partner_tier,
+a.pod as pod,
+a.is_prechecked as is_prechecked, 
+a.assignee_site as assignee_site,
+a.contact_method as contact_method,
+"" as qa_error_categories,
+"" as qa_error_sub_categories,
+"" as qa_comments,
+a.grade as rca_primary_driver,
+psat_reason,
+dsat_reason,
+dsat_other_reason,
+neutral_reason,
+ytdp_additional_feedback,
+satisfaction,
+satisfactionscore_1through7,
+issue_category_level_three,
+issue_category_level_four,
+issue_category_level_five,
+issue_category_level_six,
+issue_category,
+survey_response_day,
+neo_component,
+       neo_component_detail,
+       neo_feature,
+       neo_request,
+       neo_resolution,
+       neo_workdriver,
+       a.opening_channel AS opening_channel,
+       a.closing_channel AS closing_channel,
+group_concat (unique(a.selected_option), ' | ') as rca_primary_driver_selected_option,
+group_concat (unique(a.question_comment), ' | ') as rca_primary_driver_question_comments,
+group_concat (unique(b.category), ' | ') as rca_secondary_driver_category,
+group_concat (unique(b.selected_option), ' | ') as rca_secondary_driver_selected_option,
+group_concat (unique(b.question_comment), ' | ') as rca_secondary_driver_question_comments,
+  
+FROM (
+  SELECT 
+  d.category as category,
+  d.selected_option as selected_option,
+  d.question as question,
+  c.appeal_reviewer as appeal_reviewer,
+  c.appeal_status as appeal_status,
+  c.case_id as case_id,
+  c.final_alignment_score as final_alignment_score,
+  c.is_aligned as is_aligned,
+  c.grade as grade,
+  c.quality_reviewer as quality_reviewer,
+  c.queue as queue,
+  c.sampled_entity_id as sampled_entity_id,
+  c.is_calib_stage as is_calib_stage,
+  c.stage as stage,
+  c.task_owner as task_owner,
+  c.task_owner_msp as task_owner_msp,
+  c.workflow as workflow,
+  //c.city as city,
+  c.evaluation_score as evaluation_score,
+  c.qplus_review_date as qplus_review_date, 
+  c.qplus_review_week as qplus_review_week,
+  c.qplus_review_month as qplus_review_month,
+  c.qplus_review_quarter as qplus_review_quarter,
+  c.case_closed_day as case_closed_day,
+  c.case_closed_week as case_closed_week,
+  c.case_closed_month as case_closed_month,
+  c.case_closed_quarter as case_closed_quarter,
+  c.case_start_day as case_start_day,
+  c.case_start_week as case_start_week,
+  c.case_start_month as case_start_month,
+  c.case_start_quarter as case_start_quarter,
+  c.locale as locale,
+  c.review_type as review_type,
+  c.assignee_employee_type as assignee_employee_type,
+  c.qa_atlas_segment_business as qa_atlas_segment_business,
+  c.partner_tier as partner_tier,
+  c.pod as pod,
+  c.is_prechecked as is_prechecked,
+  c.assignee_site as assignee_site,
+  c.contact_method as contact_method,
+  "" as qa_error_categories,
+  "" as qa_error_sub_categories,
+  "" as qa_comments,
+  c.grade as primary_dsat_driver,
+  c.selected_option as primary_dsat_reason,
+  c.question_comment as question_comment,
+  c.opening_channel AS opening_channel,
+  c.closing_channel AS closing_channel
+  FROM (
+    SELECT *
+    FROM youtube_creator_support_dremel.qplus
+    WHERE review_type = 'RCA Review'
+    AND category = "primary dsat category") c
+  LEFT OUTER JOIN (
+    SELECT 
+    category,
+    case_id,
+    selected_option,
+    question,
+    FROM youtube_creator_support_dremel.qplus
+    WHERE review_type = 'RCA Review'
+    AND selected_option NOT IN ("no error","na")) d
+   ON (c.selected_option = d.category AND c.case_id = d.case_id)) a // primary DSAT driver
+left outer join(
+  SELECT *
+  FROM youtube_creator_support_dremel.qplus
+  WHERE review_type = 'RCA Review'
+  AND question_obtained_score < question_max_score
+  AND category != "primary dsat category"
+  AND selected_option NOT IN ("no error","na")) b // secondary DSAT driver
+ on a.case_id = b.case_id
+
+GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61) //50,51,52,53,54 removed due to group_concat
+
+WHERE review_type ='RCA Review'
+AND stage in ('RCA (TVC review)')
+AND queue in ('[SEO] RCA Core (new)')
