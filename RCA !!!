@@ -1,3 +1,69 @@
+Select
+A.case_id,
+CAST(A.case_start_day as DATE) as start_day,
+CAST(A.case_start_week as DATE) as start_week,
+CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST(A.case_start_day AS DATE), MONTH)) as DATE) as start_month,
+A.case_start_quarter as start_quarter,
+A.survey_response_day,
+A.locale,
+A.opening_channel,
+A.task_owner,
+A.quality_reviewer,
+CASE 
+  WHEN A.grade='support / love driven' THEN 'support' 
+  WHEN A.grade='product / policy driven' THEN 'product' 
+  ELSE NULL END as Main_Driver,
+CASE 
+  WHEN A.category='support / love' THEN 'support' 
+  WHEN A.category='product / policy' THEN 'product' 
+  ELSE NULL END as Level1,
+A.question as Level2,
+A.selected_option as Level3,
+B.qa_comments,
+A.neo_feature,
+A.neo_component,
+A.neo_component_detail,
+A.neo_request,
+A.satisfactionscore_1through7,
+CAST(A.qplus_review_date as DATE) as review_date,
+CAST(A.qplus_review_week as DATE) as review_week,
+CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST(A.qplus_review_date AS DATE), MONTH)) as DATE) as review_month,
+A.qplus_review_quarter as review_quarter
+
+
+From (
+    SELECT *,
+    is_aligned as is_aligned_v2
+    FROM youtube_creator_support_dremel.qplus
+    WHERE review_type ='RCA Review'
+    AND selected_option not in ('no','no error','yes','support / love','product / policy')
+    AND queue_site='SEO'
+    AND stage in ('RCA (TVC review)')
+    AND queue in ('[SEO] RCA Core (new)')) A
+  
+Left JOIN (
+  Select
+case_id,
+String_Agg(question_comment, ' |*__*| ') as qa_comments
+
+From (
+    SELECT *,
+    is_aligned as is_aligned_v2
+    FROM youtube_creator_support_dremel.qplus
+    WHERE review_type ='RCA Review'
+    AND queue_site='SEO'
+    AND stage in ('RCA (TVC review)')
+    AND queue in ('[SEO] RCA Core (new)'))
+group by 1) B
+on A.case_id=B.case_id
+
+
+Order by 2 desc, 1 desc, 11 asc
+
+
+
+
+======
 Select 
   A.*,
   B.Level2,
