@@ -1,0 +1,44 @@
+// Created by ksangin@, if you have any inquiries about Query, Feel free to contact me via Chats, Emails //
+Select 
+  A.case_id as case_id,
+  CAST(A.start_day as date) as start_day,
+  CAST(A.start_week as date) as start_week,
+  CAST(A.start_month as date) as start_month,
+  A.lang as lang,
+  A.opening_channel as opening_channel,
+  A.assignee_ldap as Ldap,
+  A.partner_tier as partner_tier,
+  A.assignee_site as assignee_site,
+  CAST(A.satisfactionscore_1through7 AS INT64) as satisfactionscore_1through7,
+  A.emails_responded_in_sla_excluding_pst_weekends as email_in_sla,
+  A.count_for_turn_around,
+  A.chat_Responded_in_SLA as chat_in_sla,
+  A.survey_response_received as survey_received,        
+  A.survey_sent as survey_sent,
+  A.satisfaction as satisfaction,
+  A.partner_segment,
+  B.actual_count,
+  SUM(CASE WHEN A.opening_channel='CHAT' THEN chat_Responded_in_SLA ELSE 0 END + CASE WHEN opening_channel='EMAIL' THEN emails_responded_in_sla_excluding_pst_weekends ELSE 0 END) AS sla_met,
+  SUM(CASE
+        WHEN A.opening_channel = 'EMAIL' AND A.count_for_turn_around > 0 THEN A.count_for_turn_around
+        WHEN A.opening_channel = 'CHAT' AND B.actual_count > 0 THEN B.actual_count
+        ELSE NULL END) as processed_volume
+  
+FROM chrisswan.pgm_objectives_data A
+
+left join (Select  
+           case_id, 
+           COUNT(opening_channel) AS actual_count
+           from chrisswan.pgm_objectives_data
+           group by 1) B 
+on A.case_id=B.case_id           
+
+
+WHERE assignee_site = "CNX Seoul"
+and assignee_employee_type = "TVC"
+and is_new_deal=FALSE
+and is_internal_consult=FALSE
+and in_support_corpus='Y'
+and start_week in ('2022-04-10',  '2022-03-13',  '2022-03-06',  '2022-03-27',  '2022-04-03',  '2022-03-20')
+
+group by 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18
