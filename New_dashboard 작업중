@@ -1,0 +1,27 @@
+select 
+  case_id, 
+  FORMAT_TIMESTAMP('%c',TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)),'Asia/Seoul') as kst_timestamp,
+  FORMAT_TIMESTAMP('%R',TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)),'Asia/Seoul') as kst_HH_MM,
+  FORMAT_TIMESTAMP('%A',TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)),'Asia/Seoul') as kst_dayofweek,
+  CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST (TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)) as DATE), Day)) as DATE) as kst_day,
+  CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST (TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)) as DATE), WEEK)) as DATE) as kst_week,
+  CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST (TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)) as DATE), MONTH)) as DATE) as kst_month,
+  time.start_day,
+  time.start_quarter,
+  time.start_month,
+  time.start_week,
+  assignee.ldap,
+  d_neo.locale,
+  attributes.opening_channel,  
+  d_neo.product_name,
+  d_neo.feature,
+  d_neo.component,
+  d_neo.component_detail,
+  d_neo.request,
+  d_neo.workdriver,
+  d_neo.resolution_detail,
+
+
+from yt_iit_analyst.ops.support.mv_cases
+WHERE attributes.pool IN ('3517','3518','3519','3520')
+AND CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST (TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)) as DATE), Day)) as DATE)>='2022-04-26'
