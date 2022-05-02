@@ -1,0 +1,73 @@
+Select 
+    CAST(A.week as Date) as week, 
+    CAST(A.month as Date) as month,
+    CASE 
+    WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(A.date AS DATE), QUARTER))='2022-10-01' THEN '2022-Q4'
+    WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(A.date AS DATE), QUARTER))='2022-07-01' THEN '2022-Q3'
+    WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(A.date AS DATE), QUARTER))='2022-04-01' THEN '2022-Q2'
+    WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(A.date AS DATE), QUARTER))='2022-01-01' THEN '2022-Q1' 
+    WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(A.date AS DATE), QUARTER))='2021-10-01' THEN '2021-Q4'
+    WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(A.date AS DATE), QUARTER))='2021-07-01' THEN '2021-Q3'
+    WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(A.date AS DATE), QUARTER))='2021-04-01' THEN '2021-Q2'
+    WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(A.date AS DATE), QUARTER))='2021-01-01' THEN '2021-Q1'
+    ELSE NULL END as quarter,   
+    A.language,
+    A.channel, 
+    B.product,
+    B.component,
+    B.request,
+    B.resolution_detail,
+    CASE WHEN B.product = 'YouTube' THEN 'Core Products'
+    WHEN B.product = 'YouTube Music' THEN 'Core Products'
+    WHEN B.product = 'Google Play Music' THEN 'Core Products'
+    ELSE 'Other Products' END AS core_products,
+    SUM(CASE WHEN A.SLA_met IS NULL THEN 0 ELSE A.SLA_met END + CASE WHEN A.SLA_met_phone IS NULL THEN 0 ELSE A.SLA_met_phone END) AS sla_met,
+    SUM(CASE
+        WHEN A.channel = 'EMAIL' AND A.count_for_turn_around > 0 THEN A.count_for_turn_around
+        WHEN A.channel = 'CHAT' AND A.case_ct > 0 THEN case_ct
+        WHEN A.channel = 'PHONE' AND (A.inbound - A.disconnected - A.shortcalls) <> 0 THEN (A.inbound - A.disconnected - A.shortcalls)
+        ELSE NULL END) AS processed_volume,
+    SUM(CASE WHEN A.channel = 'PHONE' THEN (CASE WHEN A.abandonment IS NULL THEN 0 ELSE A.abandonment END + CASE WHEN A.abandonment_phone IS NULL THEN 0 ELSE A.abandonment_phone END) - A.shortcalls 
+        ELSE (CASE WHEN abandonment IS NULL THEN 0 ELSE abandonment END + CASE WHEN abandonment_phone IS NULL THEN 0 ELSE abandonment_phone END) END) AS abandonment,
+    SUM(CASE WHEN A.channel = 'PHONE' THEN A.inbound - A.disconnected - A.shortcalls ELSE A.case_ct END) AS actual_count, 
+    SUM(CASE WHEN A.dsat_count IS NULL THEN 0 ELSE A.dsat_count END) AS dsat_count,
+    SUM(CASE WHEN A.survey_count IS NULL THEN 0 ELSE A.survey_count END) as survey,
+    SUM(CASE WHEN A.survey_count IS NULL THEN 0 ELSE A.survey_count END)-SUM(CASE WHEN A.dsat_count IS NULL THEN 0 ELSE A.dsat_count END) AS csat_count,
+    SUM(A.Consult) as Consult
+    
+FROM drexlerjohn.YTKRDATA2 A
+
+LEFT JOIN (
+
+select 
+  case_id, 
+  FORMAT_TIMESTAMP('%c',TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)),'Asia/Seoul') as kst_timestamp,
+  FORMAT_TIMESTAMP('%R',TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)),'Asia/Seoul') as kst_HH_MM,
+  FORMAT_TIMESTAMP('%A',TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)),'Asia/Seoul') as kst_dayofweek,
+  CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST (TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)) as DATE), Day)) as DATE) as kst_day,
+  CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST (TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)) as DATE), WEEK)) as DATE) as kst_week,
+  CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST (TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)) as DATE), MONTH)) as DATE) as kst_month,
+  time.start_day,
+  time.start_quarter,
+  time.start_month,
+  time.start_week,
+  assignee.ldap,
+  d_neo.locale,
+  attributes.opening_channel,  
+  d_neo.product_name as product,
+  d_neo.feature as feature,
+  d_neo.component as component,
+  d_neo.component_detail as component_detauk,
+  d_neo.request as request,
+  d_neo.workdriver,
+  d_neo.resolution_detail as resolution_detail,
+
+
+from yt_iit_analyst.ops.support.mv_cases
+WHERE attributes.pool IN ('3517','3518','3519','3520')) B
+on A.case_id=B.case_id
+
+WHERE A.lob ="PPS"
+AND A.Week >= '2021-12-26'
+GROUP BY 1,2,3,4,5,6,7,8,9,10
+order by 1 desc
