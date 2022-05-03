@@ -14,8 +14,11 @@ Select
     A.language,
     A.channel, 
     B.product,
+    B.feature,
     B.component,
+    B.component_detail,
     B.request,
+    B.workdriver,
     B.resolution_detail,
     CASE WHEN B.product = 'YouTube' THEN 'Core Products'
     WHEN B.product = 'YouTube Music' THEN 'Core Products'
@@ -57,9 +60,9 @@ select
   d_neo.product_name as product,
   d_neo.feature as feature,
   d_neo.component as component,
-  d_neo.component_detail as component_detauk,
+  d_neo.component_detail as component_detail,
   d_neo.request as request,
-  d_neo.workdriver,
+  d_neo.workdriver as workdriver,
   d_neo.resolution_detail as resolution_detail,
 
 
@@ -69,5 +72,5 @@ on A.case_id=B.case_id
 
 WHERE A.lob ="PPS"
 AND A.Week >= '2021-12-26'
-GROUP BY 1,2,3,4,5,6,7,8,9,10
+GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13
 order by 1 desc
