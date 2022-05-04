@@ -1,0 +1,108 @@
+// Created by ksangin@, if you have any inquiries about Query, Feel free to contact me via Chats, Emails //
+Select 
+  A.case_id as case_id,
+  CAST(A.start_day as date) as start_day,
+  CAST(A.start_week as date) as start_week,
+  CAST(A.start_month as date) as start_month,
+  CASE
+    WHEN A.start_quarter='2022-10-01' THEN '2022-Q4'     
+    WHEN A.start_quarter='2022-07-01' THEN '2022-Q3'    
+    WHEN A.start_quarter='2022-04-01' THEN '2022-Q2'
+    WHEN A.start_quarter='2022-01-01' THEN '2022-Q1'    
+    WHEN A.start_quarter='2021-10-01' THEN '2021-Q4'
+    WHEN A.start_quarter='2021-07-01' THEN '2021-Q3'
+  ELSE NULL END as start_quarter,
+  A.lang as lang,
+  A.opening_channel as opening_channel,
+  A.assignee_ldap as Ldap,
+  B.product,
+  B.feature,
+  B.component ,
+  B.component_detail,
+  B.policy_enforcement,
+  B.policy_type,
+  B.request,
+  B.workdriver,
+  B.resolution_detail,
+  A.partner_tier as partner_tier,
+  A.closed_day as closed_day,
+  A.closing_channel as closing_channel,
+  A.assignee_site as assignee_site,
+  CAST(A.satisfactionscore_1through7 AS INT64) as satisfactionscore_1through7,
+  A.emails_responded_in_sla_excluding_pst_weekends as email_in_sla,
+  A.count_for_turn_around as email_case_ct,
+  A.chat_Responded_in_SLA as chat_in_sla,
+  COUNT(CASE WHEN A.opening_channel = 'CHAT' 
+        THEN A.opening_channel END) AS chat_case_ct, 
+  COUNT(A.opening_channel) AS total_volume,    
+  A.survey_response_received as survey_received,        
+  A.survey_sent as survey_sent,
+  A.youtube_resolution_time as youtube_resolution_time,
+  A.interaction_type as interaction_type,
+  A.has_state_in_consult as has_state_in_consult,
+  A.closed as closed,
+  CASE WHEN CAST(A.youtube_resolution_time AS INT64) / 3600.0 <= 24.0
+      AND (A.closed = CAST(1 AS INT32)) 
+      AND (NOT ((A.interaction_type) IN ("Abandoned Chat", "Unconnected Chat")))
+      THEN 1 ELSE 0 END AS YTR_24h,
+  CASE WHEN CAST(A.youtube_resolution_time AS INT64) / 3600.0 <= 120.0
+      AND (A.closed = CAST(1 AS INT32)) 
+      AND (NOT ((A.interaction_type) IN ("Abandoned Chat", "Unconnected Chat")))
+      THEN 1 ELSE 0 END AS YTR_5d,
+ A.bug_id as bug_id,
+ A.email_pool_id as email_pool_id,
+ A.ytdp_issue_resolved as ytdp_issue_resolved,
+ A.YTdp_dissatisfied as YTdp_dissatisfied,
+ A.ytdp_dissatisfied_else as ytdp_dissatisfied_else,
+ A.ytdp_neither as ytdp_neither,
+ A.partner_comments as partner_comments,
+ A.Ytdp_satisfied as Ytdp_satisfied,
+ A.satisfaction as satisfaction,
+ A.dsat_driver as dsat_driver
+    
+FROM chrisswan.pgm_objectives_data A
+
+
+
+Left JOIN 
+  
+  (select 
+  case_id, 
+  FORMAT_TIMESTAMP('%c',TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)),'Asia/Seoul') as kst_timestamp,
+  FORMAT_TIMESTAMP('%R',TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)),'Asia/Seoul') as kst_HH_MM,
+  FORMAT_TIMESTAMP('%A',TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)),'Asia/Seoul') as kst_dayofweek,
+  CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST (TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)) as DATE), Day)) as DATE) as kst_day,
+  CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST (TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)) as DATE), WEEK)) as DATE) as kst_week,
+  CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST (TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)) as DATE), MONTH)) as DATE) as kst_month,
+  time.start_day,
+  time.start_quarter,
+  time.start_month,
+  time.start_week,
+  assignee.ldap,
+  d_neo.locale,
+  attributes.opening_channel,  
+  d_neo.product_name as product,
+  d_neo.feature as feature,
+  d_neo.component as component ,
+  d_neo.component_detail as component_detail,
+  d_neo.policy_enforcement as policy_enforcement,
+  d_neo.policy_type as policy_type,
+  d_neo.request as request,
+  d_neo.workdriver as workdriver,
+  d_neo.resolution_detail as resolution_detail,
+
+
+from yt_iit_analyst.ops.support.mv_cases) B
+  
+on A.case_id=B.case_id
+
+WHERE A.assignee_site = "CNX Seoul"
+and A.assignee_employee_type = "TVC"
+and A.is_new_deal=FALSE
+and A.is_internal_consult=FALSE
+and A.in_support_corpus='Y'
+and A.neo_request not in ('[Practice Training Case]')
+and A.lang in ('Korean', 'Japanese')
+and A.start_week >= '2022-04-03'
+group by 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45
+Order by 2 desc
