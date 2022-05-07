@@ -1,0 +1,127 @@
+Select 
+    kst_week,
+    kst_month,
+    kst_quarter, 
+    ldap,
+    channel, 
+    language,
+    SUM(CASE WHEN channel = 'PHONE' THEN inbound - disconnected - shortcalls ELSE case_ct END) AS actual_count, 
+    SUM(CASE 
+    WHEN channel='PHONE' THEN sla_met_phone    
+    WHEN channel='CHAT' THEN  sla_met_chat
+    WHEN channel='EMAIL' THEN sla_met_email ELSE NULL END) as sla_met,
+    SUM(CASE
+    WHEN channel = 'EMAIL' AND count_for_turn_around > 0 THEN count_for_turn_around
+    WHEN channel = 'CHAT' AND case_ct > 0 THEN case_ct
+    WHEN channel = 'PHONE' AND (inbound - disconnected - shortcalls) <> 0 THEN (inbound - disconnected - shortcalls) 
+    ELSE NULL END) AS processed_volume,
+    SUM(CASE WHEN survey_ct IS NULL THEN 0 ELSE survey_ct END) as survey,
+    SUM(CASE WHEN csat_ct IS NULL THEN 0 ELSE csat_ct END) as csat_ct,
+
+From 
+
+(select 
+  case_id, 
+  CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST (TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)) as DATE), Day)) as DATE) as kst_day,
+  CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST (TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)) as DATE), WEEK)) as DATE) as kst_week,
+  CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST (TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)) as DATE), MONTH)) as DATE) as kst_month,
+  CASE 
+  WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST (TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)) as DATE), QUARTER))='2022-10-01' THEN '2022-Q4'
+  WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST (TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)) as DATE), QUARTER))='2022-07-01' THEN '2022-Q3'
+  WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST (TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)) as DATE), QUARTER))='2022-04-01' THEN '2022-Q2'
+  WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST (TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)) as DATE), QUARTER))='2022-01-01' THEN '2022-Q1' 
+  WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST (TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)) as DATE), QUARTER))='2021-10-01' THEN '2021-Q4'
+  WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST (TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)) as DATE), QUARTER))='2021-07-01' THEN '2021-Q3'
+  WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST (TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)) as DATE), QUARTER))='2021-04-01' THEN '2021-Q2'
+  WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST (TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)) as DATE), QUARTER))='2021-01-01' THEN '2021-Q1'
+  WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST (TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)) as DATE), QUARTER))='2020-10-01' THEN '2020-Q4'
+  WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST (TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)) as DATE), QUARTER))='2020-07-01' THEN '2020-Q3'
+  WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST (TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)) as DATE), QUARTER))='2020-04-01' THEN '2020-Q2'
+  WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST (TIMESTAMP_MILLIS(CAST(time.start_timestamp as INT64)) as DATE), QUARTER))='2020-01-01' THEN '2020-Q1'
+  ELSE NULL END as kst_quarter,
+    assignee.ldap as ldap,
+  attributes.opening_channel as channel,  
+  CASE WHEN (d_neo.locale = "Korean" or d_neo.locale = "Korean (South Korea)") THEN "Korean" 
+  WHEN (d_neo.locale = "Japanese" or d_neo.locale = "Japanese (Japan)") THEN "Japanese" ELSE NULL END as language,
+  counter as case_ct,
+  pps.d_satisfaction_all as satisfaction,
+  pps.d_surveyed_counter as survey_ct,
+  pps.d_satisfied_counter as csat_ct,
+  survey.pps.ypc2_how_better as how_can_we_do_better,
+  survey.pps.ypc2_products_services as yt_products_and_services,
+  pps.d_youtube_product as youTube_product,
+  d_neo.product_name as neo_product,
+  d_neo.feature as neo_feature,
+  d_neo.component as neo_component,
+  d_neo.component_detail as neo_component_detail,
+  d_neo.request as neo_request,
+  d_neo.workdriver as neo_workdriver,
+  d_neo.resolution_detail as neo_resolution_detail,
+  metrics.phone_answered_within_sla as phone_answered_within_sla,
+  metrics.phone_speed_to_answer_seconds as phone_speed_to_answer_seconds,
+  metrics.count_for_turn_around as count_for_turn_around,
+  metrics.emails_responded_in_sla as emails_responded_in_sla,
+  metrics.emails_responded_in_sla_excluding_pst_weekends as sla_met_email,
+  pps.chat_in_sla_counter as sla_met_chat,
+  time.closed_day as closed_day, 
+  attributes.chat.chat_form_chat_type as chat_form_chat_type, 
+  CASE WHEN consult.d_is_consult is TRUE THEN 1
+  ELSE 0 END as consult10,
+  attributes.closing_channel as closing_channel, 
+  pps.d_member_status.premium_member_status as premium_member_status,
+  state.last_known_state_id as last_known_state_id,
+  metrics.total_seconds_to_resolution as total_seconds_to_resolution,
+  metrics.total_seconds_to_resolution_excluding_assignee_weekends as total_seconds_to_resolution_excluding_assignee_weekends,
+  user.d_device_type as device_type,
+  pps.neoenum_youtube_case_installation as neoenum_youtube_case_installation,
+  pps.neoenum_youtube_entitlement as neoenum_youtube_entitlement,
+/**  d_qplus.qa_pass_counter as qa_pass_counter,
+  d_qplus.qa_score as qa_score,
+  d_qplus.primary_dsat_driver as primary_dsat_driver,  QA dashboard data is still under construction **/ 
+  internal.form_ytc_geolocation as form_ytc_geolocation,
+  internal.form_auto_detected_os as form_auto_detected_os,
+  pps.d_is_google_play_billed as d_is_google_play_billed,
+  pps.d_is_pps_case as d_is_pps_case,
+  attributes.pool as pool,
+  attributes.d_spam_type as d_spam_type,
+  attributes.d_validity as d_validity,
+  internal.d_is_test_and_training as d_is_test_and_training,
+  state.d_closed_counter as closed_counter,
+  state.reopened as reopened,
+  state.reopened_from_solution_offered as reopened_from_solution_offered,
+  attributes.auth_attempt_count as auth_attempt_count,
+  attributes.duplicate_source_count as duplicate_source_count,
+  attributes.finished_as_duplicate as finished_as_duplicate,
+  attributes.survey_channel as survey_channel,
+  attributes.source as source,
+  attributes.survey_sent as survey_sent,
+  attributes.survey_footer_sent as survey_footer_sent,
+  attributes.survey_form_id as survey_form_id,
+  attributes.form_form as form_form,
+  attributes.source_case_relationship as source_case_relationship,
+  CASE WHEN attributes.phone.d_avg_ring_time_seconds <=20 THEN 1 ELSE 0 END as sla_met_phone,  
+  CASE WHEN attributes.opening_channel= "PHONE" THEN counter ELSE 0 END as inbound,  
+  attributes.phone.d_abandoned_counter as phone_abandoned,
+  CASE WHEN attributes.phone.d_abandoned_counter= 1 and attributes.phone.d_sum_time_abandon_seconds <10 
+  THEN 1 ELSE 0 END as shortcalls,
+  CASE WHEN attributes.phone.d_disconnected_counter =1 THEN 1 ELSE 0 END as disconnected,
+  attributes.phone.d_avg_time_to_answer_seconds as phone_time_to_answer,
+  attributes.phone.d_segment_counter as phone_segment_counter,
+  attributes.phone.d_avg_ring_time_seconds as phone_ring_time,
+  attributes.phone.d_sum_hold_time_seconds as phone_hold_time,
+  attributes.phone.d_sum_talk_time_seconds as phone_talk_time,
+  attributes.phone.d_sum_after_session_work_seconds as phone_after_session_work,
+  attributes.phone.call_attempt_and_status as phone_call_attempt_and_status,
+  attributes.phone.d_sum_answered_calls as phone_answered_calls,
+  attributes.phone.d_sum_abandoned_calls as phone_abandoned_calls,
+  attributes.phone.d_sum_time_abandon_seconds as phone_time_abandon_seconds,
+  d_case_link
+
+from yt_iit_analyst.ops.support.mv_cases
+WHERE attributes.pool IN ('3517','3518','3519','3520')
+AND (d_neo.locale like '%Korean%' or d_neo.locale like '%Japanese%')
+AND pps.d_is_pps_case is TRUE
+AND attributes.d_is_valid_contact is TRUE)
+
+WHERE kst_month >='2020-01-01'
+group by 1,2,3,4,5,6
