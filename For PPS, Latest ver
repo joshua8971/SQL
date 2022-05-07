@@ -1,6 +1,4 @@
 Select 
-    case_id, 
-    date, 
     week,
     month,
     quarter, 
@@ -112,5 +110,5 @@ AND (d_neo.locale like '%Korean%' or d_neo.locale like '%Japanese%')
 AND pps.d_is_pps_case is TRUE
 AND attributes.d_is_valid_contact is TRUE)
 
-WHERE month >='2021-10-01'
-group by 1,2,3,4,5,6,7,8
+WHERE month >='2020-01-01'
+group by 1,2,3,4,5,6
