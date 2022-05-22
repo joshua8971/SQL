@@ -1,0 +1,35 @@
+Select 
+    CAST(week as Date) as week,
+    CAST(month as Date) as month,
+    CASE 
+    WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(date AS DATE), QUARTER))='2022-01-01' THEN '2022-Q1'
+    WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(date AS DATE), QUARTER))='2022-04-01' THEN '2022-Q2'
+    WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(date AS DATE), QUARTER))='2022-07-01' THEN '2022-Q3'
+    WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(date AS DATE), QUARTER))='2022-10-01' THEN '2022-Q4'      
+    WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(date AS DATE), QUARTER))='2021-01-01' THEN '2021-Q1'
+    WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(date AS DATE), QUARTER))='2021-04-01' THEN '2021-Q2'
+    WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(date AS DATE), QUARTER))='2021-07-01' THEN '2021-Q3'
+    WHEN FORMAT_DATE('%F',DATE_TRUNC(CAST(date AS DATE), QUARTER))='2021-10-01' THEN '2021-Q4'
+    ELSE NULL END as quarter, 
+    ldap,
+    channel, 
+    language,
+    SUM(CASE WHEN SLA_met IS NULL THEN 0 ELSE SLA_met END + CASE WHEN SLA_met_phone IS NULL THEN 0 ELSE SLA_met_phone END) AS sla_met,
+    SUM(CASE
+        WHEN channel = 'EMAIL' AND count_for_turn_around > 0 THEN count_for_turn_around
+        WHEN channel = 'CHAT' AND case_ct > 0 THEN case_ct
+        WHEN channel = 'PHONE' AND (inbound - disconnected - shortcalls) <> 0 THEN (inbound - disconnected - shortcalls)
+        ELSE NULL END) AS processed_volume,
+    SUM(CASE WHEN channel = 'PHONE' THEN (CASE WHEN abandonment IS NULL THEN 0 ELSE abandonment END + CASE WHEN abandonment_phone IS NULL THEN 0 ELSE abandonment_phone END) - shortcalls 
+        ELSE (CASE WHEN abandonment IS NULL THEN 0 ELSE abandonment END + CASE WHEN abandonment_phone IS NULL THEN 0 ELSE abandonment_phone END) END) AS abandonment,
+    SUM(CASE WHEN channel = 'PHONE' THEN inbound - disconnected - shortcalls ELSE case_ct END) AS actual_count, 
+    SUM(CASE WHEN dsat_count IS NULL THEN 0 ELSE dsat_count END) AS dsat_count,
+    SUM(CASE WHEN survey_count IS NULL THEN 0 ELSE survey_count END) as survey,
+    SUM(CASE WHEN survey_count IS NULL THEN 0 ELSE survey_count END)-SUM(CASE WHEN dsat_count IS NULL THEN 0 ELSE dsat_count END) AS csat_count
+    
+    
+FROM drexlerjohn.YTKRDATA2
+WHERE lob ="PPS"
+AND month >='2021-01-01'
+GROUP BY month,quarter, week,ldap, language, channel, LOB 
+order by week desc
