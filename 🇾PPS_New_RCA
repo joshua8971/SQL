@@ -1,0 +1,89 @@
+Select 
+  A.case_id,
+  A.case_start_day,
+  A.case_start_week,
+  A.case_start_month,
+  A.case_start_quarter,
+  A.locale,
+  A.opening_channel,
+  A.task_owner,
+  A.quality_reviewer,
+  A.selected_option as primary_level1,
+  B.selected_option as primary_level2,
+  C.selected_option as primary_level3,
+  D.question_comment,
+  A.neo_product,
+  A.neo_feature,
+  A.neo_component,
+  A.neo_request,
+  A.qplus_review_date,
+  A.qplus_review_week,
+  A.qplus_review_month,
+  A.qplus_review_quarter,
+  A.qplus_first_review_date
+  
+from 
+      (Select 
+      case_id,
+      case_start_day,
+      case_start_week,
+      case_start_month,
+      case_start_quarter,
+      locale,
+      opening_channel,
+      task_owner,
+      quality_reviewer,
+      selected_option,
+      neo_product,
+      neo_feature,
+      neo_component,
+      neo_request,
+      qplus_review_date,
+      qplus_review_week,
+      qplus_review_month,
+      qplus_review_quarter,
+      qplus_first_review_date,
+      stage
+
+      From workflowquality_dremel.qplus_production_common_metrics
+      WHERE WORKFLOW IN ('YouTube Paid Products QA and DSAT [CNX]')
+      AND QUEUE IN ('[SEO] PPS DSAT Audits')
+      AND stage IN ('DSAT Audits (Level 1 Review)')
+      AND category IN ('primary dsat driver')) A   /** Primary Level 1 **/
+left join 
+  
+      (Select 
+      case_id,
+      selected_option 
+
+      From workflowquality_dremel.qplus_production_common_metrics
+      WHERE WORKFLOW IN ('YouTube Paid Products QA and DSAT [CNX]')
+      AND QUEUE IN ('[SEO] PPS DSAT Audits')
+      AND stage IN ('DSAT Audits (Level 1 Review)')
+      AND category like '%l2') B  /** Primary Level 2 **/
+on A.case_id = B.case_id
+
+left join 
+      (Select 
+      case_id,
+      selected_option 
+
+      From workflowquality_dremel.qplus_production_common_metrics
+      WHERE WORKFLOW IN ('YouTube Paid Products QA and DSAT [CNX]')
+      AND QUEUE IN ('[SEO] PPS DSAT Audits')
+      AND stage IN ('DSAT Audits (Level 1 Review)')
+      AND category like '%l3') C   /** Primary Level 3 **/
+ON A.case_id=C.case_id
+
+Left join 
+      (select 
+      case_id,
+      String_Agg(question_comment, ' |*__*| ') as question_comment
+
+      From workflowquality_dremel.qplus_production_common_metrics
+      WHERE WORKFLOW IN ('YouTube Paid Products QA and DSAT [CNX]')
+      AND QUEUE IN ('[SEO] PPS DSAT Audits')
+      AND stage IN ('DSAT Audits (Level 1 Review)')
+      AND question_comment not in ("")
+      group by 1) D  /** Combined_Question_Comment **/
+ON A.case_id=D.case_id
