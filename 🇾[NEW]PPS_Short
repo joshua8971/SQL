@@ -17,13 +17,10 @@ Select
     ELSE NULL END) AS processed_volume,
     SUM(NULL) as blank_column,
     SUM(CASE WHEN channel = 'PHONE' THEN inbound - disconnected - shortcalls ELSE case_ct END) AS actual_count, 
-    SUM(CASE WHEN youTube_product ='Out of Scope' THEN NULL 
-        WHEN survey_ct IS NULL THEN 0 ELSE survey_ct END)- SUM(CASE WHEN youTube_product ='Out of Scope' THEN NULL
-        WHEN csat_ct IS NULL THEN 0 ELSE csat_ct END)  as dsat_ct,
-    SUM(CASE WHEN youTube_product ='Out of Scope' THEN NULL 
-        WHEN survey_ct IS NULL THEN 0 ELSE survey_ct END) as survey,
-    SUM(CASE WHEN youTube_product ='Out of Scope' THEN NULL
-        WHEN csat_ct IS NULL THEN 0 ELSE csat_ct END) as csat_ct,
+    SUM(CASE WHEN neo_request like '%Out of Scope%' THEN NULL ELSE survey_ct END)- 
+    SUM(CASE WHEN neo_request like '%Out of Scope%' THEN NULL ELSE csat_ct END)  as dsat_ct,
+    SUM(CASE WHEN neo_request like '%Out of Scope%' THEN NULL ELSE survey_ct END) as survey,
+    SUM(CASE WHEN neo_request like '%Out of Scope%' THEN NULL ELSE csat_ct END) as csat_ct,
 
 From 
 
