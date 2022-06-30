@@ -1,0 +1,161 @@
+select 
+  A.case_id,
+  CAST(A.date as date) as day,
+  CAST(A.week as date) as week,
+  CAST(FORMAT_DATE('%F',DATE_TRUNC(CAST (A.date as DATE), MONTH)) as DATE) as month,
+  A.quarter,
+  A.language,
+  A.ldap,
+  A.channel,
+  A.neo_feature,
+  A.neo_component,
+  A.neo_component_detail,
+  A.neo_request,
+  A.neo_policy_type,
+  A.neo_business_policy,
+  A.neo_policy_enforcement,
+  A.last_known_state_id,
+  B.wave,
+  A.d_chat_validity,
+  SUM(A.volume) as volume, 
+  SUM(A.survey_ct) as survey, 
+  SUM(A.psat_ct) as psat, 
+  SUM(A.survey_ct)-SUM(psat_ct) as dsat,
+  SUM(A.count_for_turn_around) as email_volume,
+  SUM(A.emails_responded_in_sla) as email_sla_met,     
+  SUM(CASE WHEN A.channel="CHAT" THEN A.volume ELSE NULL END) as chat_volume, 
+  SUM(CASE WHEN A.channel ='CHAT' AND A.total_seconds_to_first_response<=30 THEN 1 ELSE 0 END) as chat_sla_met,
+  SUM(CASE WHEN A.d_chat_validity in ('Ghosted', 'Unconnected') THEN NULL WHEN A.d_is_resolved_in_24hr is TRUE THEN 1 ELSE 0 END) as TRT_24,
+  SUM(CASE WHEN A.d_chat_validity in ('Ghosted', 'Unconnected') THEN NULL WHEN A.d_is_resolved_in_7d is TRUE THEN 1 ELSE 0 END) as TRT_7d,
+  SUM(CASE WHEN A.primary_dsat_driver='support / love driven' THEN 1 ELSE NULL END) as support_ct, 
+  SUM(CASE WHEN A.primary_dsat_driver='product / policy driven' THEN 1 ELSE NULL END) as product_ct, 
+  SUM(A.closed_counter) as closed,
+  SUM(A.consult10) as consult10, 
+  SUM(L.people_drive) as people_drive,
+  COUNT(L.rca_reviewed) as rca_reviewed
+  
+FROM (select 
+  case_id, 
+  time.start_day as date,
+  time.start_week as week,
+  time.start_month as month,
+  time.start_quarter as quarter,
+  CASE WHEN (d_neo.locale = "Korean" or d_neo.locale = "Korean (South Korea)") THEN "Korean" 
+  WHEN (d_neo.locale = "Japanese" or d_neo.locale = "Japanese (Japan)") THEN "Japanese" ELSE NULL END as language,
+  attributes.opening_channel as channel,  
+  assignee.ldap as ldap,
+  d_neo.product_name as neo_product,
+  d_neo.feature as neo_feature,
+  d_neo.component as neo_component,
+  d_neo.component_detail as neo_component_detail,
+  d_neo.policy_type as neo_policy_type,
+  d_neo.policy_enforcement as neo_policy_enforcement,
+  d_neo.business_policy as neo_business_policy,
+  d_neo.request as neo_request,
+  d_neo.workdriver as neo_workdriver,
+  d_neo.resolution_detail as neo_resolution_detail,  
+  pse.atlas.best_partner_tier as partner_tier,
+  pse.d_pro_service_tier as pro_service_tier,
+  time.closed_day as closed_day,   
+  attributes.closing_channel as closing_channel,
+  counter as volume,
+  pse.d_survey_satisfaction as satisfaction,
+  survey.pse.ytdp_overall as Need_compared_satisfaction,
+  pse.d_surveyed_counter as survey_ct,
+  pse.d_satisfied_counter as psat_ct,
+  metrics.count_for_turn_around as count_for_turn_around,
+  metrics.emails_responded_in_sla_excluding_pst_weekends as emails_responded_in_sla_excluding_pst_weekends,
+  pse.chat_in_sla_counter as sla_met_chat,
+ survey.pse.rate_your_agreement as rate_your_agreement,
+  survey.pse.rate_your_agreement_on_policies as rate_your_agreement_on_policies,
+  survey.pse.ytdp_neither as ytdp_neither,
+  survey.pse.ytdp_dissatisfied_else as ytdp_dissatisfied_else,
+  survey.pse.ytdp_dissatisfied as ytdp_dissatisfied,
+  survey.pse.ytdp_issue_resolved as ytdp_issue_resolved,
+  pse.d_troubled_user.last_voice_of_user as troubled_user_last_voice_of_user,
+ attributes.chat.chat_form_chat_type as chat_form_chat_type, 
+  CASE WHEN metrics.count_for_consult >=1 THEN 1 ELSE 0 END as consult10,
+  state.last_known_state_id as last_known_state_id,
+  metrics.total_seconds_to_resolution as total_seconds_to_resolution,
+  metrics.total_seconds_to_resolution_excluding_assignee_weekends as total_seconds_to_resolution_excluding_assignee_weekends,
+  user.d_device_type as device_type,
+  d_qplus.qa_pass_counter as qa_pass_counter,
+  d_qplus.qa_score as qa_score,
+  d_qplus.primary_dsat_driver as primary_dsat_driver,  
+  internal.form_ytc_geolocation as form_ytc_geolocation,
+  internal.form_auto_detected_os as form_auto_detected_os,
+  attributes.pool as pool,
+  attributes.d_spam_type as d_spam_type,
+  attributes.d_validity as d_validity,
+  internal.d_is_test_and_training as d_is_test_and_training,
+  state.d_closed_counter as closed_counter,
+  state.reopened as reopened,
+  state.reopened_from_solution_offered as reopened_from_solution_offered,
+  attributes.auth_attempt_count as auth_attempt_count,
+  attributes.duplicate_source_count as duplicate_source_count,
+  attributes.finished_as_duplicate as finished_as_duplicate,
+  attributes.survey_channel as survey_channel,
+  attributes.source as source,
+  CASE WHEN attributes.survey_sent = TRUE THEN 1 ELSE 0 END as survey_sent,
+  attributes.survey_footer_sent as survey_footer_sent,
+  attributes.survey_form_id as survey_form_id,
+  attributes.form_form as form_form,
+  attributes.source_case_relationship as source_case_relationship,
+  Case when pse.d_is_valid_partner_trt = TRUE and metrics.d_total_seconds_to_resolution > 0 Then 'Agent Handled Cases'
+  When pse.d_is_valid_partner_trt = TRUE and metrics.d_total_seconds_to_resolution = 0 
+  Then 'Machine Handled Cases' Else 'Invalid Cases' End as case_interaction_type,
+  attributes.d_bug.bug_id as bug_id, 
+  attributes.chat.d_chat_validity as d_chat_validity,
+  metrics.d_is_resolved_in_24hr as d_is_resolved_in_24hr,
+  metrics.d_is_resolved_in_7d as d_is_resolved_in_7d,  
+  d_case_link,
+  metrics.total_seconds_to_first_response as total_seconds_to_first_response,
+  metrics.emails_responded_in_sla as emails_responded_in_sla, 
+
+from yt_iit_analyst.ops.support.mv_cases 
+WHERE (d_neo.locale like '%Korean%' or d_neo.locale like '%Japanese%')
+AND pse.d_is_pse_case is TRUE
+AND attributes.d_is_valid_contact is TRUE
+AND attributes.discard IN ('','ABANDONED')
+AND (d_neo.request not like '%Practice Training Case%' or d_neo.request is null)) A
+
+LEFT JOIN google.POS_agentlist B 
+on A.ldap=B.ldap
+
+LEFT JOIN (select 
+  
+T.case_id,
+SUM(CASE WHEN T.Level1 = 'people' or T.Level1='support' THEN 1 ELSE NULL END) as people_drive, 
+COUNT(T.Level1) as rca_reviewed
+
+from 
+(select 
+    case_id,
+    CASE 
+    WHEN grade='support / love driven' THEN 'support' 
+    WHEN grade='product / policy driven' THEN 'product' 
+    ELSE NULL END as Level1
+
+from youtube_creator_support_dremel.qplus
+WHERE review_type ='RCA Review'
+    AND queue_site='SEO'
+    AND stage in ('RCA (TVC IQA Review)')
+    AND queue in ('[SEO] RCA Core (new)')
+    AND category in ('primary dsat category')
+
+UNION ALL 
+
+Select 
+      case_id,
+      selected_option as Level1
+
+      From workflowquality_dremel.qplus_production_common_metrics
+      WHERE WORKFLOW IN ('YouTube PSE QA and DSAT [CNX]')
+      AND QUEUE IN ('[SEO] PSE DSAT Audits')
+      AND stage IN ('DSAT Audits (Level 1 Review)')
+      AND category IN ('primary dsat driver')) T
+group by 1 ) L
+
+ON A.case_id = L.case_id
+
+group by 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18
